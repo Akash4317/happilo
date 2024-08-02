@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Matter.js Multiple Variable Size Images Stacking</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/matter-js/0.18.0/matter.min.js"></script>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+        }
+
+        canvas {
+            width: 100%;
+            height: 105vh;
+            background-size: cover !important;
+        }
+
+        .logo img {
+            width: 180px;
+            margin: auto;
+            display: block;
+        }
+
+        .logo-cntnr {
+            position: absolute;
+            z-index: 1;
+            width: 100%;
+            top: 40px;
+        }
+
+        .coming-soon {
+            position: absolute;
+            z-index: 2;
+            top: 200px;
+            width: 100%;
+        }
+
+        .coming-soon h2 {
+            color: #000;
+            font-size: 80px;
+            text-align: center;
+        }
+        body{
+            font-family: "Poppins", sans-serif;
+
+        }
+        .text1 {
+  
+  position: relative;
+    
+  animation-name: text;
+  animation-duration: 4s;
+  animation-iteration-count:1;
+}
+@keyframes text {
+  0% {
+    color: black;
+    margin-top:-50%;
+  }
+  /* 30% {
+    letter-spacing: 25px;
+    margin-bottom: -40px;
+  }
+  85% {
+    letter-spacing: 8px;
+    margin-bottom: -40px;
+  }
+  100% {
+    margin-bottom: 20px;
+  } */
+}
+        /* .body-bg{background-image: url(images/banner.jpg);} */
+        @media(max-width:1000px){
+            .coming-soon h2{
+                font-size: 40px;
+            }
+            .logo img{
+                width: 150px;
+            }
+        }
+    </style>
+  </head>
+  <body class="body-bg">
+    <div class="logo-cntnr">
+        <div class="logo">
+            <img src="images/logo.png" alt="" title="">
+        </div>
+    </div>
+    <div class="coming-soon">
+        <h2 class="text1">COMING SOON</h2>
+    </div>
+    <script>
+      // Module aliases
+      var Engine = Matter.Engine,
+        Render = Matter.Render,
+        Runner = Matter.Runner,
+        Bodies = Matter.Bodies,
+        Composite = Matter.Composite,
+        Events = Matter.Events;
+
+      // Create an engine
+      var engine = Engine.create();
+      engine.world.gravity.y = 2; // Increase gravity for faster falling
+
+      // Create a renderer
+      var render = Render.create({
+        element: document.body,
+        engine: engine,
+        options: {
+          width: window.innerWidth,
+          height: window.innerHeight,
+          wireframes: false,
+          background: "images/banner.jpg"
+        },
+      });
+
+      // Create ground
+      var ground = Bodies.rectangle(
+        window.innerWidth / 2,
+        window.innerHeight,
+        window.innerWidth,
+        60,
+        {
+          isStatic: true,
+          render: { fillStyle: "#f0f0f0" },
+        }
+      );
+
+      Composite.add(engine.world, ground);
+
+      // Array of image URLs - replace with your image paths
+      var imageUrls = [
+            "images/1.png",
+            "images/2.png",
+            "images/3.png",
+            "images/4.png",
+            "images/5.png",
+            "images/6.png",
+            "images/8.png",
+
+        ];
+
+      var loadedImages = [];
+      var loadedCount = 0;
+
+      // Preload all images
+      imageUrls.forEach((url) => {
+        var img = new Image();
+        img.onload = function () {
+          loadedCount++;
+          if (loadedCount === imageUrls.length) {
+            startSimulation();
+          }
+        };
+        img.src = url;
+        loadedImages.push(img);
+      });
+
+      function startSimulation() {
+        // Function to create an image body
+        function createImageBody(x, y) {
+          var img =
+            loadedImages[Math.floor(Math.random() * loadedImages.length)];
+          var minScale = 0.5; // Minimum scale
+          var maxScale = 0.7; // Maximum scale
+          var scale = minScale + Math.random() * (maxScale - minScale);
+          var width = img.width * scale;
+          var height = img.height * scale;
+          return Bodies.rectangle(x, y, width, height, {
+            render: {
+              sprite: {
+                texture: img.src,
+                xScale: scale,
+                yScale: scale,
+              },
+            },
+            creationTime: Date.now(),
+          });
+        }
+
+        // Function to add a new body at the top
+        function addNewBody() {
+          var randomX = Math.random() * window.innerWidth;
+          var newBody = createImageBody(randomX, -100); // Start slightly above the top
+          Composite.add(engine.world, newBody);
+        }
+
+        // Run the renderer
+        Render.run(render);
+
+        // Create runner
+        var runner = Runner.create();
+
+        // Run the engine
+        Runner.run(runner, engine);
+
+        // Check for bodies to fade and remove
+        Events.on(engine, "afterUpdate", function () {
+          var bodies = Composite.allBodies(engine.world);
+          var currentTime = Date.now();
+          for (var i = bodies.length - 1; i >= 0; i--) {
+            var body = bodies[i];
+            if (body.position.y > window.innerHeight - 100 && !body.isStatic) {
+              var age = currentTime - body.creationTime;
+              if (age > 3000) {
+                // Start fading after 3 seconds
+                var opacity = Math.max(0, 1 - (age - 3000) / 2000); // Fade over 2 seconds
+                body.render.opacity = opacity;
+                if (opacity <= 0) {
+                  Composite.remove(engine.world, body);
+                }
+              }
+            }
+          }
+        });
+
+        // Add new bodies more frequently
+        setInterval(addNewBody, 200); // New body every 200ms
+      }
+    </script>
+  </body>
+</html>

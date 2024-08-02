@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Matter.js Fast Stacking with Fading and Removal</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/matter-js/0.18.0/matter.min.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@100..900&family=Josefin+Sans:ital,wght@0,100..700;1,100..700&family=Martel+Sans:wght@200;300;400;600;700;800;900&family=Poppins:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&display=swap"
+        rel="stylesheet">
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+        }
+
+        canvas {
+            width: 100%;
+            height: 100vh;
+            background-size: cover !important;
+        }
+
+        .logo img {
+            width: 180px;
+            margin: auto;
+            display: block;
+        }
+
+        .logo-cntnr {
+            position: absolute;
+            z-index: 1;
+            width: 100%;
+            top: 40px;
+        }
+
+        .coming-soon {
+            position: absolute;
+            z-index: 2;
+            top: 200px;
+            width: 100%;
+        }
+
+        .coming-soon h2 {
+            color: #000;
+            font-size: 80px;
+            text-align: center;
+        }
+        body{
+            font-family: "Poppins", sans-serif;
+
+        }
+        .text1 {
+  
+  position: relative;
+    
+  animation-name: text;
+  animation-duration: 4s;
+  animation-iteration-count:1;
+}
+@keyframes text {
+  0% {
+    color: black;
+    margin-top:-50%;
+  }
+  /* 30% {
+    letter-spacing: 25px;
+    margin-bottom: -40px;
+  }
+  85% {
+    letter-spacing: 8px;
+    margin-bottom: -40px;
+  }
+  100% {
+    margin-bottom: 20px;
+  } */
+}
+        /* .body-bg{background-image: url(images/banner.jpg);} */
+    </style>
+</head>
+
+<body class="body-bg">
+    <div class="logo-cntnr">
+        <div class="logo">
+            <img src="images/logo.png" alt="" title="">
+        </div>
+    </div>
+    <div class="coming-soon">
+        <h2 class="text1">COMING SOON</h2>
+    </div>
+    <script>
+        // Module aliases
+        var Engine = Matter.Engine,
+            Render = Matter.Render,
+            Runner = Matter.Runner,
+            Bodies = Matter.Bodies,
+            Composite = Matter.Composite,
+            Events = Matter.Events;
+
+        // Create an engine
+        var engine = Engine.create();
+        engine.world.gravity.y = 2; // Increase gravity for faster falling
+
+        // Create a renderer
+        var render = Render.create({
+            element: document.body,
+            engine: engine,
+            options: {
+                width: window.innerWidth,
+                height: window.innerHeight,
+                wireframes: false,
+                background: "images/banner.jpg",
+
+            },
+        });
+
+        // Create ground
+        var ground = Bodies.rectangle(
+            window.innerWidth / 2,
+            window.innerHeight,
+            window.innerWidth,
+            60,
+            {
+                isStatic: true,
+                render: { fillStyle: "#f0f0f0" },
+            }
+        );
+
+        Composite.add(engine.world, ground);
+
+        // Array of image URLs
+        var imageUrls = [
+            "images/1.png",
+            "images/2.png",
+            "images/3.png",
+            "images/4.png",
+            "images/5.png",
+            "images/6.png",
+            "images/8.png",
+
+        ];
+
+        // Function to create an image body
+        function createImageBody(x, y, size) {
+            return Bodies.rectangle(x, y, size, size, {
+                render: {
+                    sprite: {
+                        texture:
+                            imageUrls[
+                            Math.floor(Math.random() * imageUrls.length)
+                            ],
+                        xScale: size / 512,
+                        yScale: size / 512,
+                    },
+                },
+                creationTime: Date.now(),
+            });
+        }
+
+        // Function to add a new body at the top
+        function addNewBody() {
+            var randomX = Math.random() * window.innerWidth;
+            var randomSize = 40 + Math.random() * 60;
+            var newBody = createImageBody(
+                randomX,
+                -randomSize / 2,
+                randomSize
+            );
+            Composite.add(engine.world, newBody);
+        }
+
+        // Run the renderer
+        Render.run(render);
+
+        // Create runner
+        var runner = Runner.create();
+
+        // Run the engine
+        Runner.run(runner, engine);
+
+        // Check for bodies to fade and remove
+        Events.on(engine, "afterUpdate", function () {
+            var bodies = Composite.allBodies(engine.world);
+            var currentTime = Date.now();
+            for (var i = bodies.length - 1; i >= 0; i--) {
+                var body = bodies[i];
+                if (
+                    body.position.y > window.innerHeight - 100 &&
+                    !body.isStatic
+                ) {
+                    var age = currentTime - body.creationTime;
+                    if (age > 3000) {
+                        // Start fading after 3 seconds
+                        var opacity = Math.max(0, 1 - (age - 15000) / 2000); // Fade over 2 seconds
+                        body.render.opacity = opacity;
+                        if (opacity <= 0) {
+                            Composite.remove(engine.world, body);
+                        }
+                    }
+                }
+            }
+        });
+
+        // Add new bodies more frequently
+        setInterval(addNewBody, 100); // New body every 200ms
+    </script>
+</body>
+
+</html>
